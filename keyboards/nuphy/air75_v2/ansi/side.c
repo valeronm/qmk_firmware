@@ -122,7 +122,7 @@ void side_light_control(uint8_t dir) {
             side_light--;
     }
     user_config.ee_side_light = side_light;
-    eeconfig_update_user_datablock(&user_config);
+    eeconfig_update_kb_datablock(&user_config);
 }
 
 /**
@@ -139,7 +139,7 @@ void side_speed_control(uint8_t dir) {
         if ((side_speed) < SIDE_SPEED_MAX) side_speed++;
     }
     user_config.ee_side_speed = side_speed;
-    eeconfig_update_user_datablock(&user_config);
+    eeconfig_update_kb_datablock(&user_config);
 }
 
 /**
@@ -179,7 +179,7 @@ void side_colour_control(uint8_t dir) {
     }
     user_config.ee_side_rgb    = side_rgb;
     user_config.ee_side_colour = side_colour;
-    eeconfig_update_user_datablock(&user_config);
+    eeconfig_update_kb_datablock(&user_config);
 }
 
 /**
@@ -202,7 +202,7 @@ void side_mode_control(uint8_t dir) {
     }
     side_play_point          = 0;
     user_config.ee_side_mode = side_mode;
-    eeconfig_update_user_datablock(&user_config);
+    eeconfig_update_kb_datablock(&user_config);
 }
 
 /**
@@ -767,7 +767,7 @@ void device_reset_init(void) {
     user_config.ee_side_rgb             = side_rgb;
     user_config.ee_side_colour          = side_colour;
     user_config.sleep_enable            = true;
-    eeconfig_update_user_datablock(&user_config);
+    eeconfig_update_kb_datablock(&user_config);
 }
 
 /**

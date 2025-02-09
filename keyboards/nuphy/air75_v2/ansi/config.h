@@ -38,7 +38,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define DYNAMIC_KEYMAP_MACRO_DELAY          8
 #define DYNAMIC_KEYMAP_LAYER_COUNT          8
 
-#define EECONFIG_USER_DATA_SIZE             8
+#define EECONFIG_KB_DATA_SIZE               8
 
 #define RGB_MATRIX_DEFAULT_MODE             RGB_MATRIX_CYCLE_LEFT_RIGHT
 #define RGB_MATRIX_SLEEP
