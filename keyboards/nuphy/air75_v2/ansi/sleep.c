@@ -18,8 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "ansi.h"
 #include "hal_usb.h"
 #include "usb_main.h"
+#include "kb_util.h"
 
-extern user_config_t   user_config;
 extern DEV_INFO_STRUCT dev_info;
 extern uint16_t        rf_linking_time;
 extern uint16_t        no_act_time;
@@ -44,7 +44,7 @@ void sleep_handle(void) {
     if (f_goto_sleep) {
         f_goto_sleep = 0;
 
-        if(user_config.sleep_enable) {
+        if(kb_config.sleep_enable) {
             if (dev_info.rf_state == RF_CONNECT)
                 uart_send_cmd(CMD_SET_CONFIG, 5, 5);
             else

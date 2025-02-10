@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "ansi.h"
 #include "side_table.h"
+#include "kb_util.h"
 
 #define SIDE_EFFECTS        5
 #define SIDE_BRIGHT_LEVELS  6
@@ -36,20 +37,6 @@ enum {
     RIGHT_SIDE,
 };
 
-/* side rgb mode */
-enum {
-    SIDE_WAVE = 0,
-    SIDE_MIX,
-    SIDE_STATIC,
-    SIDE_BREATH,
-    SIDE_OFF,
-};
-
-uint8_t side_mode           = SIDE_WAVE;
-uint8_t side_light          = 3;
-uint8_t side_speed          = 2;
-uint8_t side_rgb            = 1;
-uint8_t side_colour         = 0;
 uint8_t side_play_point     = 0;
 uint8_t side_play_cnt       = 0;
 uint32_t side_play_timer    = 0;
@@ -83,7 +70,6 @@ const uint8_t side_led_index_tab[SIDE_LINE_LEDS][SIDE_LINE_NUM] = {
 };
 
 extern DEV_INFO_STRUCT dev_info;
-extern user_config_t   user_config;
 extern uint8_t         rf_blink_cnt;
 extern uint16_t        rf_link_show_time;
 extern bool            f_bat_hold;
@@ -123,14 +109,13 @@ void side_rgb_refresh(void) {
  */
 void side_light_control(uint8_t dir) {
     if (dir) {
-        if (side_light < SIDE_BRIGHT_LEVELS - 1)
-            side_light++;
+        if (kb_config.side_light < SIDE_BRIGHT_LEVELS - 1)
+            kb_config.side_light++;
     } else {
-        if (side_light > 0)
-            side_light--;
+        if (kb_config.side_light > 0)
+            kb_config.side_light--;
     }
-    user_config.ee_side_light = side_light;
-    eeconfig_update_kb_datablock(&user_config);
+    save_kb_config();
 }
 
 /**
@@ -139,17 +124,17 @@ void side_light_control(uint8_t dir) {
  * @note  save to eeprom.
  */
 void side_speed_control(uint8_t dir) {
-    if (side_speed > SIDE_SPEED_LEVELS) (side_speed) = 2;
+    if (kb_config.side_speed > SIDE_SPEED_LEVELS)
+        kb_config.side_speed = 2;
 
     if (dir) {
-        if (side_speed > 0)
-            side_speed--;
+        if (kb_config.side_speed > 0)
+            kb_config.side_speed--;
     } else {
-        if (side_speed < SIDE_SPEED_LEVELS - 1)
-            side_speed++;
+        if (kb_config.side_speed < SIDE_SPEED_LEVELS - 1)
+            kb_config.side_speed++;
     }
-    user_config.ee_side_speed = side_speed;
-    eeconfig_update_kb_datablock(&user_config);
+    save_kb_config();
 }
 
 /**
@@ -158,38 +143,36 @@ void side_speed_control(uint8_t dir) {
  * @note  save to eeprom.
  */
 void side_colour_control(uint8_t dir) {
-    if (side_mode != SIDE_WAVE) {
-        if (side_rgb) {
-            side_rgb    = 0;
-            side_colour = 0;
+    if (kb_config.side_mode != SIDE_WAVE) {
+        if (kb_config.side_rgb) {
+            kb_config.side_rgb    = 0;
+            kb_config.side_color = 0;
         }
     }
     if (dir) {
-        if (side_rgb) {
-            side_rgb    = 0;
-            side_colour = 0;
+        if (kb_config.side_rgb) {
+            kb_config.side_rgb    = 0;
+            kb_config.side_color = 0;
         } else {
-            side_colour++;
-            if (side_colour >= SIDE_COLOUR_MAX) {
-                side_rgb    = 1;
-                side_colour = 0;
+            kb_config.side_color++;
+            if (kb_config.side_color >= SIDE_COLOUR_MAX) {
+                kb_config.side_rgb    = 1;
+                kb_config.side_color = 0;
             }
         }
     } else {
-        if (side_rgb) {
-            side_rgb    = 0;
-            side_colour = SIDE_COLOUR_MAX - 1;
+        if (kb_config.side_rgb) {
+            kb_config.side_rgb    = 0;
+            kb_config.side_color = SIDE_COLOUR_MAX - 1;
         } else {
-            side_colour--;
-            if (side_colour >= SIDE_COLOUR_MAX) {
-                side_rgb    = 1;
-                side_colour = 0;
+            kb_config.side_color--;
+            if (kb_config.side_color >= SIDE_COLOUR_MAX) {
+                kb_config.side_rgb    = 1;
+                kb_config.side_color = 0;
             }
         }
     }
-    user_config.ee_side_rgb    = side_rgb;
-    user_config.ee_side_colour = side_colour;
-    eeconfig_update_kb_datablock(&user_config);
+    save_kb_config();
 }
 
 /**
@@ -199,20 +182,19 @@ void side_colour_control(uint8_t dir) {
  */
 void side_mode_control(uint8_t dir) {
     if (dir) {
-        side_mode++;
-        if (side_mode > SIDE_OFF) {
-            side_mode = SIDE_WAVE;
+        kb_config.side_mode++;
+        if (kb_config.side_mode > SIDE_OFF) {
+            kb_config.side_mode = SIDE_WAVE;
         }
     } else {
-        if (side_mode > SIDE_WAVE) {
-            side_mode--;
+        if (kb_config.side_mode > SIDE_WAVE) {
+            kb_config.side_mode--;
         } else {
-            side_mode = SIDE_OFF;
+            kb_config.side_mode = SIDE_OFF;
         }
     }
     side_play_point          = 0;
-    user_config.ee_side_mode = side_mode;
-    eeconfig_update_kb_datablock(&user_config);
+    save_kb_config();
 }
 
 /**
@@ -286,7 +268,7 @@ void sleep_sw_led_show(void) {
 
     if (sleep_show_flag) {
         if ((timer_elapsed32(sleep_show_timer) / 500) % 2 == 0) {
-            if (user_config.sleep_enable) {
+            if (kb_config.sleep_enable) {
                 set_right_rgb(RGB_HALF_GREEN);
             } else {
                 set_right_rgb(RGB_HALF_RED);
@@ -304,17 +286,14 @@ void sleep_sw_led_show(void) {
  * @brief  sys_led_show.
  */
 void sys_led_show(void) {
-    if (dev_info.link_mode == LINK_USB) {
-        if (host_keyboard_led_state().caps_lock) {
-            set_left_rgb(RGB_HALF_CYAN);
-        }
-    }
+    bool caps_lock = false;
+    if (dev_info.link_mode == LINK_USB)
+        caps_lock = host_keyboard_led_state().caps_lock;
+    else
+        caps_lock = dev_info.rf_led & 0x02;
 
-    else {
-        if (dev_info.rf_led & 0x02) {
-            set_left_rgb(RGB_HALF_CYAN);
-        }
-    }
+    if (caps_lock)
+        set_left_rgb(RGB_HALF_CYAN);
 }
 
 /**
@@ -357,35 +336,35 @@ static void count_rgb_light(uint8_t light_temp) {
 static void side_wave_mode_show(void) {
     uint8_t play_index;
 
-    if (side_play_cnt <= side_speed_table[side_mode][side_speed])
+    if (side_play_cnt <= side_speed_table[kb_config.side_mode][kb_config.side_speed])
         return;
     else
-        side_play_cnt -= side_speed_table[side_mode][side_speed];
+        side_play_cnt -= side_speed_table[kb_config.side_mode][kb_config.side_speed];
     if (side_play_cnt > 20) side_play_cnt = 0;
 
-    if (side_rgb)
+    if (kb_config.side_rgb)
         light_point_playing(0, 3, FLOW_COLOUR_TAB_LEN, &side_play_point);
     else
         light_point_playing(0, 2, WAVE_TAB_LEN, &side_play_point);
 
     play_index = side_play_point;
     for (int i = 0; i < SIDE_LINE_LEDS; i++) {
-        if (side_rgb) {
-            r_temp = flow_rainbow_colour_tab[play_index][0];
-            g_temp = flow_rainbow_colour_tab[play_index][1];
-            b_temp = flow_rainbow_colour_tab[play_index][2];
+        if (kb_config.side_rgb) {
+            r_temp = flow_rainbow_colour_tab[play_index].r;
+            g_temp = flow_rainbow_colour_tab[play_index].g;
+            b_temp = flow_rainbow_colour_tab[play_index].b;
 
             light_point_playing(1, 24, FLOW_COLOUR_TAB_LEN, &play_index);
         } else {
-            r_temp = colour_lib[side_colour][0];
-            g_temp = colour_lib[side_colour][1];
-            b_temp = colour_lib[side_colour][2];
+            r_temp = colour_lib[kb_config.side_color].r;
+            g_temp = colour_lib[kb_config.side_color].g;
+            b_temp = colour_lib[kb_config.side_color].b;
 
             light_point_playing(1, 12, WAVE_TAB_LEN, &play_index);
             count_rgb_light(wave_data_tab[play_index]);
         }
 
-        count_rgb_light(side_light_table[side_light]);
+        count_rgb_light(side_light_table[kb_config.side_light]);
 
         side_rgb_set_row_color(i, r_temp >> 2, g_temp >> 2, b_temp >> 2);
     }
@@ -395,19 +374,19 @@ static void side_wave_mode_show(void) {
  * @brief  side_spectrum_mode_show.
  */
 static void side_spectrum_mode_show(void) {
-    if (side_play_cnt <= side_speed_table[side_mode][side_speed])
+    if (side_play_cnt <= side_speed_table[kb_config.side_mode][kb_config.side_speed])
         return;
     else
-        side_play_cnt -= side_speed_table[side_mode][side_speed];
+        side_play_cnt -= side_speed_table[kb_config.side_mode][kb_config.side_speed];
     if (side_play_cnt > 20) side_play_cnt = 0;
 
     light_point_playing(1, 1, FLOW_COLOUR_TAB_LEN, &side_play_point);
 
-    r_temp = flow_rainbow_colour_tab[side_play_point][0];
-    g_temp = flow_rainbow_colour_tab[side_play_point][1];
-    b_temp = flow_rainbow_colour_tab[side_play_point][2];
+    r_temp = flow_rainbow_colour_tab[side_play_point].r;
+    g_temp = flow_rainbow_colour_tab[side_play_point].g;
+    b_temp = flow_rainbow_colour_tab[side_play_point].b;
 
-    count_rgb_light(side_light_table[side_light]);
+    count_rgb_light(side_light_table[kb_config.side_light]);
 
     set_both_rgb(r_temp >> 2, g_temp >> 2, b_temp >> 2);
 }
@@ -418,10 +397,10 @@ static void side_spectrum_mode_show(void) {
 static void side_breathe_mode_show(void) {
     static uint8_t play_point = 0;
 
-    if (side_play_cnt <= side_speed_table[side_mode][side_speed])
+    if (side_play_cnt <= side_speed_table[kb_config.side_mode][kb_config.side_speed])
         return;
     else
-        side_play_cnt -= side_speed_table[side_mode][side_speed];
+        side_play_cnt -= side_speed_table[kb_config.side_mode][kb_config.side_speed];
     if (side_play_cnt > 20) side_play_cnt = 0;
 
     light_point_playing(0, 1, BREATHE_TAB_LEN, &play_point);
@@ -431,17 +410,17 @@ static void side_breathe_mode_show(void) {
             if (++side_play_point >= SIDE_COLOUR_MAX) side_play_point = 0;
         }
 
-        r_temp = colour_lib[side_play_point][0];
-        g_temp = colour_lib[side_play_point][1];
-        b_temp = colour_lib[side_play_point][2];
+        r_temp = colour_lib[side_play_point].r;
+        g_temp = colour_lib[side_play_point].g;
+        b_temp = colour_lib[side_play_point].b;
     } else {
-        r_temp = colour_lib[side_colour][0];
-        g_temp = colour_lib[side_colour][1];
-        b_temp = colour_lib[side_colour][2];
+        r_temp = colour_lib[kb_config.side_color].r;
+        g_temp = colour_lib[kb_config.side_color].g;
+        b_temp = colour_lib[kb_config.side_color].b;
     }
 
     count_rgb_light(breathe_data_tab[play_point]);
-    count_rgb_light(side_light_table[side_light]);
+    count_rgb_light(side_light_table[kb_config.side_light]);
 
     set_both_rgb(r_temp >> 2, g_temp >> 2, b_temp >> 2);
 }
@@ -450,29 +429,20 @@ static void side_breathe_mode_show(void) {
  * @brief  side_static_mode_show.
  */
 static void side_static_mode_show(void) {
-    uint8_t play_index;
-
-    if (side_play_cnt <= side_speed_table[side_mode][side_speed])
+    if (side_play_cnt <= side_speed_table[kb_config.side_mode][kb_config.side_speed])
         return;
     else
-        side_play_cnt -= side_speed_table[side_mode][side_speed];
+        side_play_cnt -= side_speed_table[kb_config.side_mode][kb_config.side_speed];
     if (side_play_cnt > 20) side_play_cnt = 0;
 
     if (side_play_point >= SIDE_COLOUR_MAX) side_play_point = 0;
 
     for (int i = 0; i < SIDE_LINE_LEDS; i++) {
-        if (0) {
-            r_temp = flow_rainbow_colour_tab[16 * i][0];
-            g_temp = flow_rainbow_colour_tab[16 * i][1];
-            b_temp = flow_rainbow_colour_tab[16 * i][2];
-            light_point_playing(0, 24, FLOW_COLOUR_TAB_LEN, &play_index);
-        } else {
-            r_temp = colour_lib[side_colour][0];
-            g_temp = colour_lib[side_colour][1];
-            b_temp = colour_lib[side_colour][2];
-        }
+        r_temp = colour_lib[kb_config.side_color].r;
+        g_temp = colour_lib[kb_config.side_color].g;
+        b_temp = colour_lib[kb_config.side_color].b;
 
-        count_rgb_light(side_light_table[side_light]);
+        count_rgb_light(side_light_table[kb_config.side_light]);
 
         side_rgb_set_row_color(i, r_temp >> 2, g_temp >> 2, b_temp >> 2);
     }
@@ -482,10 +452,10 @@ static void side_static_mode_show(void) {
  * @brief  side_off_mode_show.
  */
 static void side_off_mode_show(void) {
-    if (side_play_cnt <= side_speed_table[side_mode][side_speed])
+    if (side_play_cnt <= side_speed_table[kb_config.side_mode][kb_config.side_speed])
         return;
     else
-        side_play_cnt -= side_speed_table[side_mode][side_speed];
+        side_play_cnt -= side_speed_table[kb_config.side_mode][kb_config.side_speed];
     if (side_play_cnt > 20) side_play_cnt = 0;
 
     set_both_rgb(RGB_OFF);
@@ -717,11 +687,6 @@ void device_reset_show(void) {
  * @brief  device_reset_init.
  */
 void device_reset_init(void) {
-    side_mode       = 0;
-    side_light      = 3;
-    side_speed      = 2;
-    side_rgb        = 1;
-    side_colour     = 0;
     side_play_point = 0;
 
     side_play_cnt   = 0;
@@ -734,14 +699,8 @@ void device_reset_init(void) {
     rgb_matrix_set_speed(255 - RGB_MATRIX_SPD_STEP * 2);
     rgb_matrix_sethsv(255, 255, RGB_MATRIX_MAXIMUM_BRIGHTNESS - RGB_MATRIX_VAL_STEP * 2);
 
-    user_config.default_brightness_flag = 0xA5;
-    user_config.ee_side_mode            = side_mode;
-    user_config.ee_side_light           = side_light;
-    user_config.ee_side_speed           = side_speed;
-    user_config.ee_side_rgb             = side_rgb;
-    user_config.ee_side_colour          = side_colour;
-    user_config.sleep_enable            = true;
-    eeconfig_update_kb_datablock(&user_config);
+    init_kb_config();
+    save_kb_config();
 }
 
 /**
@@ -809,7 +768,7 @@ void side_led_show(void) {
     side_play_cnt += timer_elapsed32(side_play_timer);
     side_play_timer = timer_read32();
 
-    switch (side_mode) {
+    switch (kb_config.side_mode) {
         case SIDE_WAVE:
             side_wave_mode_show();
             break;

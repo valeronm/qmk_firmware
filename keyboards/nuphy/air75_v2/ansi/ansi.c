@@ -16,10 +16,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "ansi.h"
+#include "kb_util.h"
 #include "usb_main.h"
 #include "rf_driver.h"
 
-user_config_t user_config;
 DEV_INFO_STRUCT dev_info = {
     .rf_baterry = 100,
     .link_mode  = LINK_USB,
@@ -60,11 +60,6 @@ extern report_keyboard_t *keyboard_report;
 extern report_nkro_t *nkro_report;
 extern uint8_t            bitkb_report_buf[32];
 extern uint8_t            bytekb_report_buf[8];
-extern uint8_t            side_mode;
-extern uint8_t            side_light;
-extern uint8_t            side_speed;
-extern uint8_t            side_rgb;
-extern uint8_t            side_colour;
 
 void    dev_sts_sync(void);
 void    rf_uart_init(void);
@@ -416,31 +411,6 @@ void timer_pro(void) {
     if (rf_linking_time < 0xffff) rf_linking_time++;
 }
 
-/**
- * @brief  londing eeprom data.
- */
-void loading_eeprom_data(void) {
-    eeconfig_read_kb_datablock(&user_config);
-    if (user_config.default_brightness_flag != 0xA5) {
-        /* first power on, set rgb matrix brightness at middle level*/
-        rgb_matrix_sethsv(255, 255, RGB_MATRIX_MAXIMUM_BRIGHTNESS - RGB_MATRIX_VAL_STEP * 2);
-        user_config.default_brightness_flag = 0xA5;
-        user_config.ee_side_mode            = side_mode;
-        user_config.ee_side_light           = side_light;
-        user_config.ee_side_speed           = side_speed;
-        user_config.ee_side_rgb             = side_rgb;
-        user_config.ee_side_colour          = side_colour;
-        user_config.sleep_enable            = true;
-        eeconfig_update_kb_datablock(&user_config);
-    } else {
-        side_mode   = user_config.ee_side_mode;
-        side_light  = user_config.ee_side_light;
-        side_speed  = user_config.ee_side_speed;
-        side_rgb    = user_config.ee_side_rgb;
-        side_colour = user_config.ee_side_colour;
-    }
-}
-
 /* qmk process record */
 bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
     if(!process_record_user(keycode, record)){
@@ -665,10 +635,9 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
 
         case SLEEP_MODE:
             if (record->event.pressed) {
-                if(user_config.sleep_enable) user_config.sleep_enable = false;
-                else user_config.sleep_enable = true;
-                f_sleep_show       = 1;
-                eeconfig_update_kb_datablock(&user_config);
+                kb_config.sleep_enable = !kb_config.sleep_enable;
+                f_sleep_show = 1;
+                save_kb_config();
             }
             return false;
 
