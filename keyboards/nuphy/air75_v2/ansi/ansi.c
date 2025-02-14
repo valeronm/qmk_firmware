@@ -677,7 +677,6 @@ bool rgb_matrix_indicators_kb(void)
     if(f_bat_num_show) {
         num_led_show();
     }
-    rgb_matrix_set_color(RGB_MATRIX_LED_COUNT-1, 0, 0, 0);
     return true;
 }
 
