@@ -74,7 +74,6 @@ void    side_colour_control(uint8_t dir);
 void    side_mode_control(uint8_t dir);
 void    side_led_show(void);
 void    sleep_handle(void);
-void    bat_led_close(void);
 void    num_led_show(void);
 void    rgb_test_show(void);
 
