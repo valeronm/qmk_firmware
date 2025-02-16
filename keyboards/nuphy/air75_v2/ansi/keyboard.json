@@ -7,6 +7,12 @@
         "device_version": "1.2.0",
         "no_startup_check": true
     },
+    "qmk": {
+        "tap_keycode_delay": 8
+    },
+    "dynamic_keymap": {
+        "layer_count": 8
+    },
     "features": {
         "bootmagic": true,
         "mousekey": true,

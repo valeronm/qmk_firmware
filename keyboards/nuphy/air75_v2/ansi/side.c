@@ -532,7 +532,7 @@ void bat_percent_led(uint8_t bat_percent) {
         side_rgb_set_color(11 - i, bat_r >> 2, bat_g >> 2, bat_b >> 2);
 
     for (; i < 6; i++)
-        side_rgb_set_color(11 - i, 0, 0, 0);
+        side_rgb_set_color(11 - i, RGB_OFF);
 }
 
 /**
