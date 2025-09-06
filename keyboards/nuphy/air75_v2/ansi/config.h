@@ -35,3 +35,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define SD1_RX_PAL_MODE                     0
 
 #define EECONFIG_KB_DATA_SIZE               10
+
+#define WS2812_TIMING       850
+#define WS2812_T1H          700
+#define WS2812_T0H          150
+
+#define WS2812_PWM_DRIVER        PWMD3  
+#define WS2812_PWM_CHANNEL       2      
+#define WS2812_PWM_PAL_MODE      1      
+#define WS2812_DMA_STREAM        STM32_DMA1_STREAM3  
+#define WS2812_DMA_CHANNEL       3                   
+#define WS2812_PWM_TARGET_PERIOD 200000  
