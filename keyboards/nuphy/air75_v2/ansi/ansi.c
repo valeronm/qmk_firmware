@@ -244,9 +244,6 @@ void dial_sw_scan(void) {
     }
     dial_scan_timer = timer_read32();
 
-    gpio_set_pin_input_high(DEV_MODE_PIN);
-    gpio_set_pin_input_high(SYS_MODE_PIN);
-
     if (gpio_read_pin(DEV_MODE_PIN)) dial_scan |= DIAL_DEV_MODE_BIT;
     if (gpio_read_pin(SYS_MODE_PIN)) dial_scan |= DIAL_SYS_MODE_BIT;
 
@@ -307,63 +304,51 @@ void dial_sw_scan(void) {
  * @brief  power on scan dial switch.
  */
 void dial_sw_fast_scan(void) {
-    {
-        uint8_t dial_scan_dev  = 0;
-        uint8_t dial_scan_sys  = 0;
-        uint8_t dial_check_dev = 0;
-        uint8_t dial_check_sys = 0;
-        uint8_t debounce       = 0;
+    uint8_t dial_scan_dev  = 0;
+    uint8_t dial_scan_sys  = 0;
+    uint8_t dial_check_dev = 0;
+    uint8_t dial_check_sys = 0;
 
-        gpio_set_pin_input_high(DEV_MODE_PIN);
-        gpio_set_pin_input_high(SYS_MODE_PIN);
+    gpio_set_pin_input_high(DEV_MODE_PIN);
+    gpio_set_pin_input_high(SYS_MODE_PIN);
 
-        // Debounce to get a stable state
-        for (debounce = 0; debounce < 10; debounce++) {
-            dial_scan_dev = 0;
-            dial_scan_sys = 0;
-            if (gpio_read_pin(DEV_MODE_PIN))
-                dial_scan_dev = 0x01;
-            else
-                dial_scan_dev = 0;
-            if (gpio_read_pin(SYS_MODE_PIN))
-                dial_scan_sys = 0x01;
-            else
-                dial_scan_sys = 0;
-            if ((dial_scan_dev != dial_check_dev) || (dial_scan_sys != dial_check_sys)) {
-                dial_check_dev = dial_scan_dev;
-                dial_check_sys = dial_scan_sys;
-                debounce       = 0;
-            }
-            wait_ms(1);
+    // Debounce to get a stable state
+    for (uint8_t debounce = 0; debounce < 10; debounce++) {
+        dial_scan_dev = gpio_read_pin(DEV_MODE_PIN) ? 0x01 : 0;
+        dial_scan_sys = gpio_read_pin(SYS_MODE_PIN) ? 0x01 : 0;
+        if ((dial_scan_dev != dial_check_dev) || (dial_scan_sys != dial_check_sys)) {
+            dial_check_dev = dial_scan_dev;
+            dial_check_sys = dial_scan_sys;
+            debounce       = 0;
         }
+        wait_ms(1);
+    }
 
-        // RF link mode
-        if (dial_scan_dev) {
-            if (dev_info.link_mode != LINK_USB) {
-                switch_dev_link(LINK_USB);
-            }
-        } else {
-            if (dev_info.link_mode != dev_info.rf_channel) {
-                switch_dev_link(dev_info.rf_channel);
-            }
+    // RF link mode
+    if (dial_scan_dev) {
+        if (dev_info.link_mode != LINK_USB) {
+            switch_dev_link(LINK_USB);
         }
+    } else {
+        if (dev_info.link_mode != dev_info.rf_channel) {
+            switch_dev_link(dev_info.rf_channel);
+        }
+    }
 
-        // Win or Mac
-        if (dial_scan_sys) {
-            if (dev_info.sys_sw_state != SYS_SW_MAC) {
-                default_layer_set(1 << 0);
-                dev_info.sys_sw_state = SYS_SW_MAC;
-                keymap_config.nkro    = 0;
-                break_all_key();
-            }
-        } else {
-            if (dev_info.sys_sw_state != SYS_SW_WIN) {
-                // f_sys_show = 1;
-                default_layer_set(1 << 2);
-                dev_info.sys_sw_state = SYS_SW_WIN;
-                keymap_config.nkro    = 1;
-                break_all_key();
-            }
+    // Win or Mac
+    if (dial_scan_sys) {
+        if (dev_info.sys_sw_state != SYS_SW_MAC) {
+            default_layer_set(1 << 0);
+            dev_info.sys_sw_state = SYS_SW_MAC;
+            keymap_config.nkro    = 0;
+            break_all_key();
+        }
+    } else {
+        if (dev_info.sys_sw_state != SYS_SW_WIN) {
+            default_layer_set(1 << 2);
+            dev_info.sys_sw_state = SYS_SW_WIN;
+            keymap_config.nkro    = 1;
+            break_all_key();
         }
     }
 }
@@ -373,13 +358,6 @@ void dial_sw_fast_scan(void) {
  */
 void timer_pro(void) {
     static uint32_t interval_timer = 0;
-    static bool     f_first        = true;
-
-    if (f_first) {
-        f_first        = false;
-        interval_timer = timer_read32();
-        m_host_driver  = host_get_driver();
-    }
 
     if (timer_elapsed32(interval_timer) < 10)
         return;
@@ -417,47 +395,20 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
             return false;
 
         case LNK_RF:
-            if (record->event.pressed) {
-                if (dev_info.link_mode != LINK_USB) {
-                    rf_sw_temp    = LINK_RF_24;
-                    f_rf_sw_press = 1;
-                    break_all_key();
-                }
-            } else if (f_rf_sw_press) {
-                f_rf_sw_press = 0;
-
-                if (rf_sw_press_delay < RF_LONG_PRESS_DELAY) {
-                    dev_info.link_mode   = rf_sw_temp;
-                    dev_info.rf_channel  = rf_sw_temp;
-                    dev_info.ble_channel = rf_sw_temp;
-                    uart_send_cmd(CMD_SET_LINK, 10, 20);
-                }
-            }
-            return false;
-
         case LNK_BLE1:
-            if (record->event.pressed) {
-                if (dev_info.link_mode != LINK_USB) {
-                    rf_sw_temp    = LINK_BT_1;
-                    f_rf_sw_press = 1;
-                    break_all_key();
-                }
-            } else if (f_rf_sw_press) {
-                f_rf_sw_press = 0;
-
-                if (rf_sw_press_delay < RF_LONG_PRESS_DELAY) {
-                    dev_info.link_mode   = rf_sw_temp;
-                    dev_info.rf_channel  = rf_sw_temp;
-                    dev_info.ble_channel = rf_sw_temp;
-                    uart_send_cmd(CMD_SET_LINK, 10, 20);
-                }
-            }
-            return false;
-
         case LNK_BLE2:
+        case LNK_BLE3: {
+            uint8_t mode;
+            switch (keycode) {
+                case LNK_RF:   mode = LINK_RF_24; break;
+                case LNK_BLE1: mode = LINK_BT_1;  break;
+                case LNK_BLE2: mode = LINK_BT_2;  break;
+                default:       mode = LINK_BT_3;  break;
+            }
+
             if (record->event.pressed) {
                 if (dev_info.link_mode != LINK_USB) {
-                    rf_sw_temp    = LINK_BT_2;
+                    rf_sw_temp    = mode;
                     f_rf_sw_press = 1;
                     break_all_key();
                 }
@@ -472,25 +423,7 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
                 }
             }
             return false;
-
-        case LNK_BLE3:
-            if (record->event.pressed) {
-                if (dev_info.link_mode != LINK_USB) {
-                    rf_sw_temp    = LINK_BT_3;
-                    f_rf_sw_press = 1;
-                    break_all_key();
-                }
-            } else if (f_rf_sw_press) {
-                f_rf_sw_press = 0;
-
-                if (rf_sw_press_delay < RF_LONG_PRESS_DELAY) {
-                    dev_info.link_mode   = rf_sw_temp;
-                    dev_info.rf_channel  = rf_sw_temp;
-                    dev_info.ble_channel = rf_sw_temp;
-                    uart_send_cmd(CMD_SET_LINK, 10, 20);
-                }
-            }
-            return false;
+        }
 
         case MAC_TASK:
             if (record->event.pressed) {
@@ -678,6 +611,10 @@ void keyboard_post_init_kb(void) {
 
 /* qmk housekeeping task */
 void housekeeping_task_kb(void) {
+    if (m_host_driver == NULL) {
+        m_host_driver = host_get_driver();
+    }
+
     timer_pro();
 
     uart_receive_pro();

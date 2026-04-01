@@ -55,6 +55,11 @@ void    uart_receive_pro(void);
 void    uart_send_report_func(void);
 uint8_t uart_send_cmd(uint8_t cmd, uint8_t ack_cnt, uint8_t delayms);
 void    uart_send_report(uint8_t report_type, uint8_t *report_buf, uint8_t report_size);
+void    uart_send_report_keyboard(report_keyboard_t *report);
+void    uart_send_report_nkro(report_nkro_t *report);
+void    uart_send_mouse_report(report_mouse_t *report);
+void    uart_send_consumer_report(report_extra_t *report);
+void    uart_send_system_report(report_extra_t *report);
 
 // ansi.c
 void break_all_key(void);

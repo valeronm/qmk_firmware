@@ -169,8 +169,8 @@ void uart_send_report_keyboard(report_keyboard_t *report) {
  */
 void uart_send_report_nkro(report_nkro_t *report) {
     no_act_time = 0;
-    uart_auto_nkey_send(bitkb_report_buf, &nkro_report->mods, NKRO_REPORT_BITS + 1);
-    memcpy(&bitkb_report_buf[0], &nkro_report->mods, NKRO_REPORT_BITS + 1);
+    uart_auto_nkey_send(bitkb_report_buf, &report->mods, NKRO_REPORT_BITS + 1);
+    memcpy(&bitkb_report_buf[0], &report->mods, NKRO_REPORT_BITS + 1);
 }
 
 /**
@@ -292,14 +292,10 @@ uint8_t uart_send_cmd(uint8_t cmd, uint8_t wait_ack, uint8_t delayms) {
     Usart_Mgr.TXDBuf[2] = 0x00;
 
     switch (cmd) {
-        case CMD_SLEEP: {
-            Usart_Mgr.TXDBuf[3] = 1;
-            Usart_Mgr.TXDBuf[4] = 0;
-            Usart_Mgr.TXDBuf[5] = 0;
-            break;
-        }
-
-        case CMD_HAND: {
+        case CMD_SLEEP:
+        case CMD_HAND:
+        case CMD_CLR_DEVICE:
+        case CMD_RF_DFU: {
             Usart_Mgr.TXDBuf[3] = 1;
             Usart_Mgr.TXDBuf[4] = 0;
             Usart_Mgr.TXDBuf[5] = 0;
@@ -334,13 +330,6 @@ uint8_t uart_send_cmd(uint8_t cmd, uint8_t wait_ack, uint8_t delayms) {
             rf_linking_time  = 0;
             disconnect_delay = 0xff;
             f_rf_new_adv_ok  = 0;
-            break;
-        }
-
-        case CMD_CLR_DEVICE: {
-            Usart_Mgr.TXDBuf[3] = 1;
-            Usart_Mgr.TXDBuf[4] = 0;
-            Usart_Mgr.TXDBuf[5] = 0;
             break;
         }
 
@@ -408,13 +397,6 @@ uint8_t uart_send_cmd(uint8_t cmd, uint8_t wait_ack, uint8_t delayms) {
             Usart_Mgr.TXDBuf[4] = 0x00;
             Usart_Mgr.TXDBuf[5] = FUNC_VALID_LEN;
             Usart_Mgr.TXDBuf[6] = FUNC_VALID_LEN;
-            break;
-        }
-
-        case CMD_RF_DFU: {
-            Usart_Mgr.TXDBuf[3] = 1;
-            Usart_Mgr.TXDBuf[4] = 0;
-            Usart_Mgr.TXDBuf[5] = 0;
             break;
         }
 
@@ -624,40 +606,23 @@ void rf_uart_init(void) {
 /**
  * @brief RF module initial.
  */
+static void rf_retry_cmd(uint8_t cmd, bool *flag) {
+    uint8_t timeout = 10;
+    *flag = false;
+    while (timeout--) {
+        uart_send_cmd(cmd, 0, 20);
+        wait_ms(5);
+        uart_receive_pro();
+        uart_receive_pro();
+        if (*flag) break;
+    }
+}
+
 void rf_device_init(void) {
-    uint8_t timeout = 0;
-
-    timeout      = 10;
-    f_rf_hand_ok = 0;
-    while (timeout--) {
-        uart_send_cmd(CMD_HAND, 0, 20);
-        wait_ms(5);
-        uart_receive_pro(); // receive data
-        uart_receive_pro(); // parsing data
-        if (f_rf_hand_ok) break;
-    }
-
-    timeout           = 10;
-    f_rf_read_data_ok = 0;
-    while (timeout--) {
-        uart_send_cmd(CMD_READ_DATA, 0, 20);
-        wait_ms(5);
-        uart_receive_pro();
-        uart_receive_pro();
-        if (f_rf_read_data_ok) break;
-    }
-
-    timeout          = 10;
-    f_rf_sts_sysc_ok = 0;
-    while (timeout--) {
-        uart_send_cmd(CMD_RF_STS_SYSC, 0, 20);
-        wait_ms(5);
-        uart_receive_pro();
-        uart_receive_pro();
-        if (f_rf_sts_sysc_ok) break;
-    }
+    rf_retry_cmd(CMD_HAND, &f_rf_hand_ok);
+    rf_retry_cmd(CMD_READ_DATA, &f_rf_read_data_ok);
+    rf_retry_cmd(CMD_RF_STS_SYSC, &f_rf_sts_sysc_ok);
 
     uart_send_cmd(CMD_SET_NAME, 10, 20);
-
     uart_send_cmd(CMD_SET_24G_NAME, 10, 20);
 }
