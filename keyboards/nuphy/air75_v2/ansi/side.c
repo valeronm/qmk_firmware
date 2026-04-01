@@ -15,61 +15,38 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "ansi.h"
+#include "nuphy_common.h"
 #include "side_table.h"
-#include "kb_util.h"
 
-#define SIDE_LINE_LEDS      6
-#define SIDE_LINE_NUM       2
-#define SIDE_LED_NUM        SIDE_LINE_LEDS * SIDE_LINE_NUM
+#define SIDE_LINE_LEDS 6
+#define SIDE_LINE_NUM 2
+#define SIDE_LED_NUM (SIDE_LINE_LEDS * SIDE_LINE_NUM)
 
-#define RF_LED_LINK_PERIOD  500
-#define RF_LED_PAIR_PERIOD  250
+#define RF_LED_LINK_PERIOD 500
+#define RF_LED_PAIR_PERIOD 250
 
-/* positions */
 enum {
     LEFT_SIDE,
     RIGHT_SIDE,
 };
 
-uint8_t side_play_point     = 0;
-uint8_t side_play_cnt       = 0;
-uint32_t side_play_timer    = 0;
-uint8_t r_temp, g_temp, b_temp;
-rgb_t side_leds[SIDE_LED_NUM] = {0};
+uint8_t  side_play_point = 0;
+uint8_t  side_play_cnt   = 0;
+uint32_t side_play_timer = 0;
+uint8_t  r_temp, g_temp, b_temp;
+rgb_t    side_leds[SIDE_LED_NUM] = {0};
 
 const uint8_t side_speed_table[SIDE_EFFECTS][SIDE_SPEED_LEVELS] = {
-    [SIDE_WAVE]   = {10, 14, 20, 28, 38}, //
-    [SIDE_MIX]    = {10, 14, 20, 28, 38}, //
-    [SIDE_STATIC] = {50, 50, 50, 50, 50}, //
-    [SIDE_BREATH] = {10, 14, 20, 28, 38}, //
-    [SIDE_OFF]    = {50, 50, 50, 50, 50}, //
+    [SIDE_WAVE] = {10, 14, 20, 28, 38}, [SIDE_MIX] = {10, 14, 20, 28, 38}, [SIDE_STATIC] = {50, 50, 50, 50, 50}, [SIDE_BREATH] = {10, 14, 20, 28, 38}, [SIDE_OFF] = {50, 50, 50, 50, 50},
 };
 
 const uint8_t side_light_table[SIDE_BRIGHT_LEVELS] = {
-    0,   //
-    22,  //
-    34,  //
-    55,  //
-    79,  //
-    106, //
+    0, 22, 34, 55, 79, 106,
 };
 
 const uint8_t side_led_index_tab[SIDE_LINE_LEDS][SIDE_LINE_NUM] = {
-    {5, 6},  //
-    {4, 7},  //
-    {3, 8},  //
-    {2, 9},  //
-    {1, 10}, //
-    {0, 11}, //
+    {5, 6}, {4, 7}, {3, 8}, {2, 9}, {1, 10}, {0, 11},
 };
-
-extern DEV_INFO_STRUCT dev_info;
-extern uint8_t         rf_blink_cnt;
-extern uint16_t        rf_link_show_time;
-extern bool            f_bat_hold;
-extern bool            f_sys_show;
-extern bool            f_sleep_show;
 
 void side_ws2812_setleds(rgb_led_t *ledarray, uint16_t leds);
 void rgb_matrix_update_pwm_buffers(void);
@@ -104,11 +81,9 @@ void side_rgb_refresh(void) {
  */
 void side_light_control(uint8_t dir) {
     if (dir) {
-        if (kb_config.side_light < SIDE_BRIGHT_LEVELS - 1)
-            kb_config.side_light++;
+        if (kb_config.side_light < SIDE_BRIGHT_LEVELS - 1) kb_config.side_light++;
     } else {
-        if (kb_config.side_light > 0)
-            kb_config.side_light--;
+        if (kb_config.side_light > 0) kb_config.side_light--;
     }
     save_kb_config();
 }
@@ -119,15 +94,12 @@ void side_light_control(uint8_t dir) {
  * @note  save to eeprom.
  */
 void side_speed_control(uint8_t dir) {
-    if (kb_config.side_speed > SIDE_SPEED_LEVELS)
-        kb_config.side_speed = 2;
+    if (kb_config.side_speed > SIDE_SPEED_LEVELS) kb_config.side_speed = 2;
 
     if (dir) {
-        if (kb_config.side_speed > 0)
-            kb_config.side_speed--;
+        if (kb_config.side_speed > 0) kb_config.side_speed--;
     } else {
-        if (kb_config.side_speed < SIDE_SPEED_LEVELS - 1)
-            kb_config.side_speed++;
+        if (kb_config.side_speed < SIDE_SPEED_LEVELS - 1) kb_config.side_speed++;
     }
     save_kb_config();
 }
@@ -140,29 +112,29 @@ void side_speed_control(uint8_t dir) {
 void side_colour_control(uint8_t dir) {
     if (kb_config.side_mode != SIDE_WAVE) {
         if (kb_config.side_rgb) {
-            kb_config.side_rgb    = 0;
+            kb_config.side_rgb   = 0;
             kb_config.side_color = 0;
         }
     }
     if (dir) {
         if (kb_config.side_rgb) {
-            kb_config.side_rgb    = 0;
+            kb_config.side_rgb   = 0;
             kb_config.side_color = 0;
         } else {
             kb_config.side_color++;
             if (kb_config.side_color >= SIDE_COLOUR_MAX) {
-                kb_config.side_rgb    = 1;
+                kb_config.side_rgb   = 1;
                 kb_config.side_color = 0;
             }
         }
     } else {
         if (kb_config.side_rgb) {
-            kb_config.side_rgb    = 0;
+            kb_config.side_rgb   = 0;
             kb_config.side_color = SIDE_COLOUR_MAX - 1;
         } else {
             kb_config.side_color--;
             if (kb_config.side_color >= SIDE_COLOUR_MAX) {
-                kb_config.side_rgb    = 1;
+                kb_config.side_rgb   = 1;
                 kb_config.side_color = 0;
             }
         }
@@ -188,7 +160,7 @@ void side_mode_control(uint8_t dir) {
             kb_config.side_mode = SIDE_OFF;
         }
     }
-    side_play_point          = 0;
+    side_play_point = 0;
     save_kb_config();
 }
 
@@ -287,8 +259,7 @@ void sys_led_show(void) {
     else
         caps_lock = dev_info.rf_led & 0x02;
 
-    if (caps_lock)
-        set_left_rgb(RGB_HALF_CYAN);
+    if (caps_lock) set_left_rgb(RGB_HALF_CYAN);
 }
 
 /**
@@ -454,22 +425,26 @@ void rf_led_show(void) {
 /**
  * @brief  bat_num_led.
  */
-void bat_num_led(uint8_t bat_percent)
-{
+void bat_num_led(uint8_t bat_percent) {
     uint8_t r, g, b;
 
     // set color
     if (bat_percent <= 15) {
-        r = 0xff; g = 0x00; b = 0x00;
-    }
-    else if (bat_percent <= 50) {
-        r = 0xff; g = 0x40; b = 0x00;
-    }
-    else if (bat_percent <= 80) {
-        r = 0xff; g = 0xff; b = 0x00;
-    }
-    else {
-        r = 0x00; g = 0xff; b = 0x00;
+        r = 0xff;
+        g = 0x00;
+        b = 0x00;
+    } else if (bat_percent <= 50) {
+        r = 0xff;
+        g = 0x40;
+        b = 0x00;
+    } else if (bat_percent <= 80) {
+        r = 0xff;
+        g = 0xff;
+        b = 0x00;
+    } else {
+        r = 0x00;
+        g = 0xff;
+        b = 0x00;
     }
 
     // set percent
@@ -485,8 +460,7 @@ void bat_num_led(uint8_t bat_percent)
     if (bat_percent > 90) rgb_matrix_set_color(20, r, g, b);
 }
 
-void num_led_show(void)
-{
+void num_led_show(void) {
     bat_num_led(dev_info.rf_battery);
 }
 
@@ -604,7 +578,6 @@ void bat_led_show(void) {
  * @brief  device_reset_show.
  */
 void device_reset_show(void) {
-
     gpio_write_pin_high(DC_BOOST_PIN);
     gpio_set_pin_output(DRIVER_SIDE_CS_PIN);
     gpio_set_pin_output(DRIVER_LED_CS_PIN);
@@ -648,9 +621,8 @@ void device_reset_init(void) {
 
 /**
  *      RGB test
-*/
-void rgb_test_show(void)
-{
+ */
+void rgb_test_show(void) {
     // open power control
     gpio_write_pin_high(DC_BOOST_PIN);
     gpio_set_pin_output(DRIVER_LED_CS_PIN);
@@ -711,8 +683,8 @@ void side_led_show(void) {
     side_play_cnt += timer_elapsed32(side_play_timer);
     side_play_timer = timer_read32();
 
-    bool change_effect = false;
-    uint8_t change_delay = side_speed_table[kb_config.side_mode][kb_config.side_speed];
+    bool    change_effect = false;
+    uint8_t change_delay  = side_speed_table[kb_config.side_mode][kb_config.side_speed];
     if (side_play_cnt > change_delay) {
         side_play_cnt -= change_delay;
         change_effect = true;

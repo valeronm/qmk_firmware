@@ -15,29 +15,19 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "ansi.h"
+#include "nuphy_common.h"
 #include "hal_usb.h"
 #include "usb_main.h"
-#include "kb_util.h"
 
 #define USB_GETSTATUS_REMOTE_WAKEUP_ENABLED (2U)
-
-extern DEV_INFO_STRUCT dev_info;
-extern uint16_t        rf_linking_time;
-extern uint16_t        no_act_time;
-extern bool            f_goto_sleep;
-extern bool            f_wakeup_prepare;
-
-uint8_t uart_send_cmd(uint8_t cmd, uint8_t ack_cnt, uint8_t delayms);
-void    break_all_key(void);
 
 /**
  * @brief  Sleep Handle.
  */
 void sleep_handle(void) {
-    static uint32_t delay_step_timer = 0;
+    static uint32_t delay_step_timer     = 0;
     static uint8_t  usb_suspend_debounce = 0;
-    static uint32_t rf_disconnect_time = 0;
+    static uint32_t rf_disconnect_time   = 0;
 
     /* 50ms interval */
     if (timer_elapsed32(delay_step_timer) < 50) return;
@@ -47,7 +37,7 @@ void sleep_handle(void) {
     if (f_goto_sleep) {
         f_goto_sleep = 0;
 
-        if(kb_config.sleep_enable) {
+        if (kb_config.sleep_enable) {
             if (dev_info.rf_state == RF_CONNECT)
                 uart_send_cmd(CMD_SET_CONFIG, 5, 5);
             else
@@ -93,8 +83,7 @@ void sleep_handle(void) {
     }
 
     // sleep check
-    if (f_goto_sleep || f_wakeup_prepare)
-        return;
+    if (f_goto_sleep || f_wakeup_prepare) return;
     if (dev_info.link_mode == LINK_USB) {
         if (USB_DRIVER.state == USB_SUSPENDED) {
             usb_suspend_debounce++;
@@ -116,7 +105,7 @@ void sleep_handle(void) {
         rf_disconnect_time++;
         if (rf_disconnect_time > 5 * 20) {
             rf_disconnect_time = 0;
-            f_goto_sleep = 1;
+            f_goto_sleep       = 1;
         }
     }
 }

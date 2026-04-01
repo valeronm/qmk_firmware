@@ -15,25 +15,17 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "ansi.h"
-#include "uart.h"  // qmk uart.h
+#include "nuphy_common.h"
+#include "uart.h"
 #include "rf_driver.h"
 #include "usb_device_state.h"
 
 USART_MGR_STRUCT Usart_Mgr;
-#define RX_SBYTE    Usart_Mgr.RXDBuf[0]
-#define RX_CMD      Usart_Mgr.RXDBuf[1]
-#define RX_ACK      Usart_Mgr.RXDBuf[2]
-#define RX_LEN      Usart_Mgr.RXDBuf[3]
-#define RX_DAT      Usart_Mgr.RXDBuf[4]
-
-extern bool f_uart_ack;
-extern bool f_rf_read_data_ok;
-extern bool f_rf_sts_sysc_ok;
-extern bool f_rf_new_adv_ok;
-extern bool f_rf_reset;
-extern bool f_rf_hand_ok;
-extern bool f_goto_sleep;
+#define RX_SBYTE Usart_Mgr.RXDBuf[0]
+#define RX_CMD Usart_Mgr.RXDBuf[1]
+#define RX_ACK Usart_Mgr.RXDBuf[2]
+#define RX_LEN Usart_Mgr.RXDBuf[3]
+#define RX_DAT Usart_Mgr.RXDBuf[4]
 
 uint8_t  uart_bit_report_buf[32] = {0};
 uint8_t  func_tab[32]            = {0};
@@ -45,35 +37,21 @@ uint8_t  sync_lost               = 0;
 uint8_t  disconnect_delay        = 0;
 bool     uart_repeat_flag        = 0;
 
-extern DEV_INFO_STRUCT dev_info;
-extern host_driver_t  *m_host_driver;
-extern uint8_t         host_mode;
-extern uint8_t         rf_blink_cnt;
-extern uint16_t        rf_link_show_time;
-extern uint16_t        rf_linking_time;
-extern uint16_t        no_act_time;
-extern bool            f_send_channel;
-extern bool            f_dial_sw_init_ok;
+static void    UART_Send_Bytes(uint8_t *Buffer, uint32_t Length);
+static uint8_t get_checksum(uint8_t *buf, uint8_t len);
 
 report_mouse_t mousekey_get_report(void);
-void           uart_init(uint32_t baud); // qmk uart.c
-void           uart_send_report(uint8_t report_type, uint8_t *report_buf, uint8_t report_size);
-void           UART_Send_Bytes(uint8_t *Buffer, uint32_t Length);
-uint8_t        get_checksum(uint8_t *buf, uint8_t len);
-void           uart_receive_pro(void);
-void           break_all_key(void);
 uint16_t       host_last_consumer_usage(void);
 
 /**
  * @brief Uart auto nkey send
  */
-bool f_bit_kb_act = 0;
-static void uart_auto_nkey_send(uint8_t *pre_bit_report, uint8_t *now_bit_report, uint8_t size)
-{
+bool        f_bit_kb_act = 0;
+static void uart_auto_nkey_send(uint8_t *pre_bit_report, uint8_t *now_bit_report, uint8_t size) {
     uint8_t i, j, byte_index;
     uint8_t change_mask, offset_mask;
-    uint8_t key_code = 0;
-    bool f_byte_send = 0, f_bit_send = 0;
+    uint8_t key_code    = 0;
+    bool    f_byte_send = 0, f_bit_send = 0;
 
     if (pre_bit_report[0] ^ now_bit_report[0]) {
         bytekb_report_buf[0] = now_bit_report[0];
@@ -126,12 +104,10 @@ static void uart_auto_nkey_send(uint8_t *pre_bit_report, uint8_t *now_bit_report
     }
 }
 
-
 /**
  * @brief  Uart send keys report.
  */
-void uart_send_report_func(void)
-{
+void uart_send_report_func(void) {
     static uint32_t interval_timer = 0;
 
     if (dev_info.link_mode == LINK_USB) return;
@@ -142,10 +118,8 @@ void uart_send_report_func(void)
             uart_send_report(CMD_RPT_BYTE_KB, bytekb_report_buf, 8);
             wait_us(200);
 
-            if(f_bit_kb_act)
-            uart_send_report(CMD_RPT_BIT_KB, uart_bit_report_buf, 16);
-        }
-        else {
+            if (f_bit_kb_act) uart_send_report(CMD_RPT_BIT_KB, uart_bit_report_buf, 16);
+        } else {
             f_bit_kb_act = 0;
         }
     }
@@ -207,11 +181,10 @@ void RF_Protocol_Receive(void) {
 
     if (Usart_Mgr.RXDState == RX_Done) {
         f_uart_ack = 1;
-        sync_lost = 0;
+        sync_lost  = 0;
 
         if (Usart_Mgr.RXDLen > 4) {
-            if((Usart_Mgr.RXDLen - 5) != RX_LEN)
-                return;
+            if ((Usart_Mgr.RXDLen - 5) != RX_LEN) return;
 
             for (i = 0; i < RX_LEN; i++)
                 check_sum += Usart_Mgr.RXDBuf[4 + i];
@@ -223,8 +196,7 @@ void RF_Protocol_Receive(void) {
         } else if (Usart_Mgr.RXDLen == 3) {
             if (Usart_Mgr.RXDBuf[2] == 0xA0) {
                 f_uart_ack = 1;
-            }
-            else {
+            } else {
                 return;
             }
         } else {
@@ -263,8 +235,7 @@ void RF_Protocol_Receive(void) {
 
                     if (Usart_Mgr.RXDBuf[8] <= 100) dev_info.rf_battery = Usart_Mgr.RXDBuf[8];
                     if (dev_info.rf_charge & 0x01) dev_info.rf_battery = 100;
-                }
-                else {
+                } else {
                     if (dev_info.rf_state != RF_INVALID) {
                         if (error_cnt >= 5) {
                             error_cnt      = 0;
@@ -404,9 +375,9 @@ uint8_t uart_send_cmd(uint8_t cmd, uint8_t wait_ack, uint8_t delayms) {
         }
 
         case CMD_SET_24G_NAME: {
-            Usart_Mgr.TXDBuf[3]  = 44;  // uart data len
-            Usart_Mgr.TXDBuf[4]  = 44;  // name valid len
-            Usart_Mgr.TXDBuf[5]  = 3;   // 固定
+            Usart_Mgr.TXDBuf[3]  = 44; // uart data len
+            Usart_Mgr.TXDBuf[4]  = 44; // name valid len
+            Usart_Mgr.TXDBuf[5]  = 3;  // 固定
             Usart_Mgr.TXDBuf[6]  = 'N';
             Usart_Mgr.TXDBuf[8]  = 'u';
             Usart_Mgr.TXDBuf[10] = 'P';
@@ -428,7 +399,7 @@ uint8_t uart_send_cmd(uint8_t cmd, uint8_t wait_ack, uint8_t delayms) {
             Usart_Mgr.TXDBuf[42] = 'g';
             Usart_Mgr.TXDBuf[44] = 'l';
             Usart_Mgr.TXDBuf[46] = 'e';
-            Usart_Mgr.TXDBuf[48] = get_checksum(Usart_Mgr.TXDBuf + 4, Usart_Mgr.TXDBuf[3]);  // sum
+            Usart_Mgr.TXDBuf[48] = get_checksum(Usart_Mgr.TXDBuf + 4, Usart_Mgr.TXDBuf[3]); // sum
             break;
         }
 
@@ -485,8 +456,7 @@ void dev_sts_sync(void) {
         wait_ms(50);
         gpio_write_pin_high(NRF_RESET_PIN);
         wait_ms(50);
-    }
-    else if (f_send_channel) {
+    } else if (f_send_channel) {
         f_send_channel = 0;
         uart_send_cmd(CMD_SET_LINK, 10, 10);
     }
@@ -498,8 +468,7 @@ void dev_sts_sync(void) {
             break_all_key();
         }
         rf_blink_cnt = 0;
-    }
-    else {
+    } else {
         if (host_mode != HOST_RF_TYPE) {
             host_mode = HOST_RF_TYPE;
             break_all_key();
@@ -509,14 +478,13 @@ void dev_sts_sync(void) {
 
         if (dev_info.rf_state != RF_CONNECT) {
             if (disconnect_delay >= 10) {
-                rf_blink_cnt    = 3;
+                rf_blink_cnt      = 3;
                 rf_link_show_time = 0;
-                link_state_temp = dev_info.rf_state;
+                link_state_temp   = dev_info.rf_state;
             } else {
                 disconnect_delay++;
             }
-        }
-        else if (dev_info.rf_state == RF_CONNECT) {
+        } else if (dev_info.rf_state == RF_CONNECT) {
             rf_linking_time  = 0;
             disconnect_delay = 0;
             rf_blink_cnt     = 0;
@@ -527,7 +495,6 @@ void dev_sts_sync(void) {
                 if (dev_info.link_mode == LINK_RF_24) {
                     uart_send_cmd(CMD_SET_24G_NAME, 10, 30);
                 }
-
             }
         }
     }
@@ -547,10 +514,9 @@ void dev_sts_sync(void) {
  * @param Buffer data buf
  * @param Length data length
  */
-void UART_Send_Bytes(uint8_t *Buffer, uint32_t Length) {
-    if(uart_repeat_flag) {
-        for(uint8_t i = 0;i<3;i++)
-        {
+static void UART_Send_Bytes(uint8_t *Buffer, uint32_t Length) {
+    if (uart_repeat_flag) {
+        for (uint8_t i = 0; i < 3; i++) {
             gpio_write_pin_low(NRF_WAKEUP_PIN);
             wait_us(50);
 
@@ -562,13 +528,13 @@ void UART_Send_Bytes(uint8_t *Buffer, uint32_t Length) {
             wait_us(200);
         }
     } else {
-            gpio_write_pin_low(NRF_WAKEUP_PIN);
-            wait_us(50);
+        gpio_write_pin_low(NRF_WAKEUP_PIN);
+        wait_us(50);
 
-            uart_transmit(Buffer, Length);
+        uart_transmit(Buffer, Length);
 
-            wait_us(50 + Length * 32);
-            gpio_write_pin_high(NRF_WAKEUP_PIN);
+        wait_us(50 + Length * 32);
+        gpio_write_pin_high(NRF_WAKEUP_PIN);
     }
 }
 
@@ -577,7 +543,7 @@ void UART_Send_Bytes(uint8_t *Buffer, uint32_t Length) {
  * @param buf data buf
  * @param len data length
  */
-uint8_t get_checksum(uint8_t *buf, uint8_t len) {
+static uint8_t get_checksum(uint8_t *buf, uint8_t len) {
     uint8_t i;
     uint8_t checksum = 0;
 
@@ -629,8 +595,7 @@ void uart_receive_pro(void) {
 
         if (Usart_Mgr.RXDLen >= UART_MAX_LEN) {
             uart_read();
-        }
-        else {
+        } else {
             Usart_Mgr.RXDBuf[Usart_Mgr.RXDLen++] = uart_read();
         }
 
@@ -644,7 +609,7 @@ void uart_receive_pro(void) {
         rcv_start          = false;
         Usart_Mgr.RXDState = RX_Done;
         RF_Protocol_Receive();
-        Usart_Mgr.RXDLen   = 0;
+        Usart_Mgr.RXDLen = 0;
     }
 }
 

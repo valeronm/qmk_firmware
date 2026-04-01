@@ -23,12 +23,12 @@ void loading_eeprom_data(void) {
 
 void init_kb_config(void) {
     kb_config.default_brightness_flag = EEPROM_INIT_MARKER;
-    kb_config.side_mode    = SIDE_WAVE;
-    kb_config.side_light   = 3;
-    kb_config.side_speed   = 2;
-    kb_config.side_rgb     = 1;
-    kb_config.side_color   = 0;
-    kb_config.sleep_enable = true;
+    kb_config.side_mode               = SIDE_WAVE;
+    kb_config.side_light              = 3;
+    kb_config.side_speed              = 2;
+    kb_config.side_rgb                = 1;
+    kb_config.side_color              = 0;
+    kb_config.sleep_enable            = true;
 }
 
 void save_kb_config(void) {

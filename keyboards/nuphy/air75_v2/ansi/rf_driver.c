@@ -18,11 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "host_driver.h"
 #include "rf_driver.h"
 #include "host.h"
-#include "ansi.h"
-#include "usb_device_state.h"
-
-/* Variable declaration */
-extern DEV_INFO_STRUCT dev_info;
+#include "nuphy_common.h"
 
 /* Host driver */
 static uint8_t rf_keyboard_leds(void);

@@ -1,11 +1,13 @@
-c# NuPhy Air75 V2
+# NuPhy Air75 V2
 
-*NuPhy Air75 V2 is a standard 84 key keyboard.*
 ![NuPhy Air75 V2](https://bit.ly/486pSkN)
 
+A 75% wireless mechanical keyboard with 84 keys, supporting USB, 2.4GHz RF, and Bluetooth connectivity.
+
 * Keyboard Maintainer: [nuphy](https://github.com/nuphy-src)
-* Hardware Supported: NuPhy Air75 V2 PCB
-* Hardware Availability: Private
+* Hardware Supported: NuPhy Air75 V2 (ANSI layout)
+* Hardware Availability: [nuphy.com](https://nuphy.com)
+* MCU: STM32F072
 
 Make example for this keyboard (after setting up your build environment):
 
@@ -21,4 +23,4 @@ See the [build environment setup](https://docs.qmk.fm/#/getting_started_build_to
 
 Enter the bootloader in one way:
 
-* **Bootmagic reset**: Hold down the key at (0,0) in the matrix (usually the top left key or Escape) and plug in the keyboard
+* **Bootmagic reset**: Hold down the key at (0,0) in the matrix (Escape) and plug in the keyboard
