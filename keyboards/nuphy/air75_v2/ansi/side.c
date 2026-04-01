@@ -33,8 +33,7 @@ enum {
 uint8_t  side_play_point = 0;
 uint8_t  side_play_cnt   = 0;
 uint32_t side_play_timer = 0;
-uint8_t  r_temp, g_temp, b_temp;
-rgb_t    side_leds[SIDE_LED_NUM] = {0};
+uint8_t r_temp, g_temp, b_temp;
 
 const uint8_t side_speed_table[SIDE_EFFECTS][SIDE_SPEED_LEVELS] = {
     [SIDE_WAVE] = {10, 14, 20, 28, 38}, [SIDE_MIX] = {10, 14, 20, 28, 38}, [SIDE_STATIC] = {50, 50, 50, 50, 50}, [SIDE_BREATH] = {10, 14, 20, 28, 38}, [SIDE_OFF] = {50, 50, 50, 50, 50},
@@ -48,30 +47,16 @@ const uint8_t side_led_index_tab[SIDE_LINE_LEDS][SIDE_LINE_NUM] = {
     {5, 6}, {4, 7}, {3, 8}, {2, 9}, {1, 10}, {0, 11},
 };
 
-void side_ws2812_setleds(rgb_led_t *ledarray, uint16_t leds);
+void side_ws2812_set_color(int index, uint8_t red, uint8_t green, uint8_t blue);
+void side_ws2812_flush(void);
 void rgb_matrix_update_pwm_buffers(void);
 
-/**
- * @brief  side leds set color vaule.
- * @param  index: index of side_leds[].
- * @param  ...
- */
-void side_rgb_set_color(int index, uint8_t red, uint8_t green, uint8_t blue) {
-    side_leds[index].r = red;
-    side_leds[index].g = green;
-    side_leds[index].b = blue;
-}
+#define side_rgb_set_color side_ws2812_set_color
+#define side_rgb_refresh   side_ws2812_flush
 
 void side_rgb_set_row_color(uint8_t row, uint8_t red, uint8_t green, uint8_t blue) {
     for (int i = 0; i < SIDE_LINE_NUM; i++)
         side_rgb_set_color(side_led_index_tab[row][i], red, green, blue);
-}
-
-/**
- * @brief  refresh side leds.
- */
-void side_rgb_refresh(void) {
-    side_ws2812_setleds(side_leds, SIDE_LED_NUM);
 }
 
 /**
