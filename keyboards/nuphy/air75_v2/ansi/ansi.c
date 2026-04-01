@@ -16,10 +16,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "ansi.h"
+#include "kb_util.h"
 #include "usb_main.h"
 #include "rf_driver.h"
 
-user_config_t user_config;
 DEV_INFO_STRUCT dev_info = {
     .rf_baterry = 100,
     .link_mode  = LINK_USB,
@@ -60,11 +60,6 @@ extern report_keyboard_t *keyboard_report;
 extern report_nkro_t *nkro_report;
 extern uint8_t            bitkb_report_buf[32];
 extern uint8_t            bytekb_report_buf[8];
-extern uint8_t            side_mode;
-extern uint8_t            side_light;
-extern uint8_t            side_speed;
-extern uint8_t            side_rgb;
-extern uint8_t            side_colour;
 
 void    dev_sts_sync(void);
 void    rf_uart_init(void);
@@ -79,7 +74,6 @@ void    side_colour_control(uint8_t dir);
 void    side_mode_control(uint8_t dir);
 void    side_led_show(void);
 void    sleep_handle(void);
-void    bat_led_close(void);
 void    num_led_show(void);
 void    rgb_test_show(void);
 
@@ -416,31 +410,6 @@ void timer_pro(void) {
     if (rf_linking_time < 0xffff) rf_linking_time++;
 }
 
-/**
- * @brief  londing eeprom data.
- */
-void londing_eeprom_data(void) {
-    eeconfig_read_user_datablock(&user_config, 0, sizeof(user_config));
-    if (user_config.default_brightness_flag != 0xA5) {
-        /* first power on, set rgb matrix brightness at middle level*/
-        rgb_matrix_sethsv(255, 255, RGB_MATRIX_MAXIMUM_BRIGHTNESS - RGB_MATRIX_VAL_STEP * 2);
-        user_config.default_brightness_flag = 0xA5;
-        user_config.ee_side_mode            = side_mode;
-        user_config.ee_side_light           = side_light;
-        user_config.ee_side_speed           = side_speed;
-        user_config.ee_side_rgb             = side_rgb;
-        user_config.ee_side_colour          = side_colour;
-        user_config.sleep_enable            = true;
-        eeconfig_update_user_datablock(&user_config, 0, sizeof(user_config));
-    } else {
-        side_mode   = user_config.ee_side_mode;
-        side_light  = user_config.ee_side_light;
-        side_speed  = user_config.ee_side_speed;
-        side_rgb    = user_config.ee_side_rgb;
-        side_colour = user_config.ee_side_colour;
-    }
-}
-
 /* qmk process record */
 bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
     if(!process_record_user(keycode, record)){
@@ -665,10 +634,9 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
 
         case SLEEP_MODE:
             if (record->event.pressed) {
-                if(user_config.sleep_enable) user_config.sleep_enable = false;
-                else user_config.sleep_enable = true;
-                f_sleep_show       = 1;
-                eeconfig_update_user_datablock(&user_config, 0, sizeof(user_config));
+                kb_config.sleep_enable = !kb_config.sleep_enable;
+                f_sleep_show = 1;
+                save_kb_config();
             }
             return false;
 
@@ -708,7 +676,6 @@ bool rgb_matrix_indicators_kb(void)
     if(f_bat_num_show) {
         num_led_show();
     }
-    rgb_matrix_set_color(RGB_MATRIX_LED_COUNT-1, 0, 0, 0);
     return true;
 }
 
@@ -721,7 +688,7 @@ void keyboard_post_init_kb(void) {
 
     break_all_key();
     dial_sw_fast_scan();
-    londing_eeprom_data();
+    loading_eeprom_data();
     keyboard_post_init_user();
 }
 

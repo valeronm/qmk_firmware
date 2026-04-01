@@ -157,16 +157,3 @@ typedef struct
     uint8_t rf_baterry;
     uint8_t sys_sw_state;
 } DEV_INFO_STRUCT;
-
-typedef struct
-{
-    uint8_t default_brightness_flag;
-    uint8_t ee_side_mode;
-    uint8_t ee_side_light;
-    uint8_t ee_side_speed;
-    uint8_t ee_side_rgb;
-    uint8_t ee_side_colour;
-    uint8_t sleep_enable;
-    uint8_t retain1;
-    uint8_t retain2;
-} user_config_t;

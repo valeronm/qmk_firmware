@@ -16,9 +16,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "ansi.h"
-#include "usb_device_state.h"
 #include "uart.h"  // qmk uart.h
 #include "rf_driver.h"
+#include "usb_device_state.h"
 
 USART_MGR_STRUCT Usart_Mgr;
 #define RX_SBYTE    Usart_Mgr.RXDBuf[0]
@@ -211,7 +211,7 @@ void RF_Protocol_Receive(void) {
         sync_lost = 0;
 
         if (Usart_Mgr.RXDLen > 4) {
-            if((Usart_Mgr.RXDLen - 5) != RX_LEN) 
+            if((Usart_Mgr.RXDLen - 5) != RX_LEN)
                 return;
 
             for (i = 0; i < RX_LEN; i++)
@@ -525,7 +525,7 @@ void dev_sts_sync(void) {
                 link_state_temp   = RF_CONNECT;
                 rf_link_show_time = 0;
                 if (dev_info.link_mode == LINK_RF_24) {
-                    uart_send_cmd(CMD_SET_24G_NAME, 10, 30);   
+                    uart_send_cmd(CMD_SET_24G_NAME, 10, 30);
                 }
 
             }
@@ -553,22 +553,22 @@ void UART_Send_Bytes(uint8_t *Buffer, uint32_t Length) {
         {
             gpio_write_pin_low(NRF_WAKEUP_PIN);
             wait_us(50);
-        
+
             uart_transmit(Buffer, Length);
-        
+
             wait_us(50 + Length * 32);
-            gpio_write_pin_high(NRF_WAKEUP_PIN);  
-        
-            wait_us(200);      
-        }        
+            gpio_write_pin_high(NRF_WAKEUP_PIN);
+
+            wait_us(200);
+        }
     } else {
             gpio_write_pin_low(NRF_WAKEUP_PIN);
             wait_us(50);
-        
+
             uart_transmit(Buffer, Length);
-        
+
             wait_us(50 + Length * 32);
-            gpio_write_pin_high(NRF_WAKEUP_PIN);          
+            gpio_write_pin_high(NRF_WAKEUP_PIN);
     }
 }
 
