@@ -20,8 +20,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "usb_main.h"
 #include "rf_driver.h"
 
+#define DIAL_SCAN_INTERVAL_MS   20
+#define DIAL_DEBOUNCE_TICKS     25
+#define DIAL_DEV_MODE_BIT       0x01
+#define DIAL_SYS_MODE_BIT       0x02
+
 DEV_INFO_STRUCT dev_info = {
-    .rf_baterry = 100,
+    .rf_battery = 100,
     .link_mode  = LINK_USB,
     .rf_state   = RF_IDLE,
 };
@@ -76,6 +81,8 @@ void    side_led_show(void);
 void    sleep_handle(void);
 void    num_led_show(void);
 void    rgb_test_show(void);
+void    device_reset_show(void);
+void    device_reset_init(void);
 
 /**
  * @brief  gpio initial.
@@ -157,9 +164,6 @@ void long_press_key(void) {
             uart_send_cmd(CMD_SET_LINK, 10, 10);
             wait_ms(500);
             uart_send_cmd(CMD_CLR_DEVICE, 10, 10);
-
-            void device_reset_show(void);
-            void device_reset_init(void);
 
             eeconfig_init();
             device_reset_show();
@@ -260,15 +264,15 @@ void dial_sw_scan(void) {
     static bool     f_first         = true;
 
     if (!f_first) {
-        if (timer_elapsed32(dial_scan_timer) < 20) return;
+        if (timer_elapsed32(dial_scan_timer) < DIAL_SCAN_INTERVAL_MS) return;
     }
     dial_scan_timer = timer_read32();
 
     gpio_set_pin_input_high(DEV_MODE_PIN);
     gpio_set_pin_input_high(SYS_MODE_PIN);
 
-    if (gpio_read_pin(DEV_MODE_PIN)) dial_scan |= 0X01;
-    if (gpio_read_pin(SYS_MODE_PIN)) dial_scan |= 0X02;
+    if (gpio_read_pin(DEV_MODE_PIN)) dial_scan |= DIAL_DEV_MODE_BIT;
+    if (gpio_read_pin(SYS_MODE_PIN)) dial_scan |= DIAL_SYS_MODE_BIT;
 
     if (dial_save != dial_scan) {
         break_all_key();
@@ -277,7 +281,7 @@ void dial_sw_scan(void) {
         rf_linking_time = 0;
 
         dial_save         = dial_scan;
-        debounce          = 25;
+        debounce          = DIAL_DEBOUNCE_TICKS;
         f_dial_sw_init_ok = 0;
         return;
     } else if (debounce) {
@@ -285,7 +289,7 @@ void dial_sw_scan(void) {
         return;
     }
 
-    if (dial_scan & 0x01) {
+    if (dial_scan & DIAL_DEV_MODE_BIT) {
         if (dev_info.link_mode != LINK_USB) {
             switch_dev_link(LINK_USB);
         }
@@ -295,7 +299,7 @@ void dial_sw_scan(void) {
         }
     }
 
-    if (dial_scan & 0x02) {
+    if (dial_scan & DIAL_SYS_MODE_BIT) {
         if (dev_info.sys_sw_state != SYS_SW_MAC) {
             f_sys_show = 1;
             default_layer_set(1 << 0);

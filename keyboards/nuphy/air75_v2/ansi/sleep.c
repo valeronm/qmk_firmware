@@ -20,6 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "usb_main.h"
 #include "kb_util.h"
 
+#define USB_GETSTATUS_REMOTE_WAKEUP_ENABLED (2U)
+
 extern DEV_INFO_STRUCT dev_info;
 extern uint16_t        rf_linking_time;
 extern uint16_t        no_act_time;
@@ -27,6 +29,7 @@ extern bool            f_goto_sleep;
 extern bool            f_wakeup_prepare;
 
 uint8_t uart_send_cmd(uint8_t cmd, uint8_t ack_cnt, uint8_t delayms);
+void    break_all_key(void);
 
 /**
  * @brief  Sleep Handle.
@@ -75,8 +78,7 @@ void sleep_handle(void) {
         uart_send_cmd(CMD_HAND, 0, 1);
 
         if (dev_info.link_mode == LINK_USB) {
-            #define USB_GETSTATUS_REMOTE_WAKEUP_ENABLED (2U)
-            if ((USB_DRIVER.status & USB_GETSTATUS_REMOTE_WAKEUP_ENABLED) ) {
+            if ((USB_DRIVER.status & USB_GETSTATUS_REMOTE_WAKEUP_ENABLED)) {
                 usb_lld_wakeup_host(&USB_DRIVER);
                 wait_ms(50);
                 uint8_t timeout = 10;
@@ -85,7 +87,6 @@ void sleep_handle(void) {
                     restart_usb_driver(&USB_DRIVER);
                     wait_ms(50);
                 }
-                extern void break_all_key(void);
                 break_all_key();
             }
         }

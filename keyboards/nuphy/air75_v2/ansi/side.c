@@ -19,11 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "side_table.h"
 #include "kb_util.h"
 
-#define SIDE_EFFECTS        5
-#define SIDE_BRIGHT_LEVELS  6
-#define SIDE_SPEED_LEVELS   5
-#define SIDE_COLOUR_MAX     8
-
 #define SIDE_LINE_LEDS      6
 #define SIDE_LINE_NUM       2
 #define SIDE_LED_NUM        SIDE_LINE_LEDS * SIDE_LINE_NUM
@@ -492,9 +487,7 @@ void bat_num_led(uint8_t bat_percent)
 
 void num_led_show(void)
 {
-    static uint8_t num_bat_temp         = 0;
-    num_bat_temp         = dev_info.rf_baterry;
-    bat_num_led(num_bat_temp);
+    bat_num_led(dev_info.rf_battery);
 }
 
 /**
@@ -556,7 +549,7 @@ void bat_led_show(void) {
         f_init        = 0;
         bat_show_time = timer_read32();
         charge_state  = dev_info.rf_charge;
-        bat_percent   = dev_info.rf_baterry;
+        bat_percent   = dev_info.rf_battery;
     }
 
     if (charge_state != dev_info.rf_charge) {
@@ -577,13 +570,13 @@ void bat_led_show(void) {
         if (charge_state == 0x03) {
             bat_show_breath = true;
         } else if (charge_state & 0x01) {
-            dev_info.rf_baterry = 100;
+            dev_info.rf_battery = 100;
         }
     }
 
-    if (bat_percent != dev_info.rf_baterry) {
+    if (bat_percent != dev_info.rf_battery) {
         if (timer_elapsed32(bat_per_debounce) > 1000) {
-            bat_percent = dev_info.rf_baterry;
+            bat_percent = dev_info.rf_battery;
         }
     } else {
         bat_per_debounce = timer_read32();

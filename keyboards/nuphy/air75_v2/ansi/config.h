@@ -32,6 +32,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define UART_TX_PAL_MODE                    0
 #define UART_RX_PIN                         B7
 #define UART_RX_PAL_MODE                    0
+#define UART_CR1                            (USART_CR1_M0 | USART_CR1_PCE)
 
 #define EECONFIG_KB_DATA_SIZE               10
 

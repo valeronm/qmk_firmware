@@ -135,7 +135,6 @@ void uart_send_report_func(void)
     static uint32_t interval_timer = 0;
 
     if (dev_info.link_mode == LINK_USB) return;
-    usb_device_state_set_protocol(USB_PROTOCOL_REPORT);
 
     if (timer_elapsed32(interval_timer) > 50) {
         interval_timer = timer_read32();
@@ -262,8 +261,8 @@ void RF_Protocol_Receive(void) {
 
                     dev_info.rf_charge = Usart_Mgr.RXDBuf[7];
 
-                    if (Usart_Mgr.RXDBuf[8] <= 100) dev_info.rf_baterry = Usart_Mgr.RXDBuf[8];
-                    if (dev_info.rf_charge & 0x01) dev_info.rf_baterry = 100;
+                    if (Usart_Mgr.RXDBuf[8] <= 100) dev_info.rf_battery = Usart_Mgr.RXDBuf[8];
+                    if (dev_info.rf_charge & 0x01) dev_info.rf_battery = 100;
                 }
                 else {
                     if (dev_info.rf_state != RF_INVALID) {
@@ -505,6 +504,7 @@ void dev_sts_sync(void) {
             host_mode = HOST_RF_TYPE;
             break_all_key();
             host_set_driver(&rf_host_driver);
+            usb_device_state_set_protocol(USB_PROTOCOL_REPORT);
         }
 
         if (dev_info.rf_state != RF_CONNECT) {
@@ -652,17 +652,8 @@ void uart_receive_pro(void) {
  * @brief  RF uart initial.
  */
 void rf_uart_init(void) {
-    /* set uart buad as 460800 */
+    /* Parity and 9-bit mode configured via UART_CR1 in config.h */
     uart_init(460800);
-
-    /* Enable parity check */
-    USART1->CR1 &= ~((uint32_t)USART_CR1_UE);
-    USART1->CR1 |= USART_CR1_M0 | USART_CR1_PCE;
-    USART1->CR1 |= USART_CR1_UE;
-
-    /* set Rx and Tx pin pull up */
-    GPIOB->OSPEEDR &= ~(GPIO_OSPEEDER_OSPEEDR6 | GPIO_OSPEEDER_OSPEEDR7);
-    GPIOB->PUPDR |= (GPIO_PUPDR_PUPDR6_0 | GPIO_PUPDR_PUPDR7_0);
 }
 
 /**
@@ -670,7 +661,6 @@ void rf_uart_init(void) {
  */
 void rf_device_init(void) {
     uint8_t timeout = 0;
-    void    uart_receive_pro(void);
 
     timeout      = 10;
     f_rf_hand_ok = 0;
