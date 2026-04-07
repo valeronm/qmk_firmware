@@ -18,11 +18,23 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "nuphy_common.h"
 #include "usb_main.h"
 #include "rf_driver.h"
+#include "hal_wdg.h"
 
 #define DIAL_SCAN_INTERVAL_MS 20
 #define DIAL_DEBOUNCE_TICKS 25
 #define DIAL_DEV_MODE_BIT 0x01
 #define DIAL_SYS_MODE_BIT 0x02
+
+/*
+ * IWDG watchdog configuration.
+ * LSI clock ~40kHz, prescaler=256, reload=625 -> ~4s timeout.
+ * Resets the MCU if housekeeping_task_kb() stops running.
+ */
+static const WDGConfig wdg_config = {
+    .pr   = STM32_IWDG_PR_256,
+    .rlr  = STM32_IWDG_RL(625),
+    .winr = STM32_IWDG_WIN_DISABLED,
+};
 
 DEV_INFO_STRUCT dev_info = {
     .rf_battery = 100,
@@ -606,11 +618,16 @@ void keyboard_post_init_kb(void) {
     break_all_key();
     dial_sw_fast_scan();
     loading_eeprom_data();
+
+    wdgStart(&WDGD1, &wdg_config);
+
     keyboard_post_init_user();
 }
 
 /* qmk housekeeping task */
 void housekeeping_task_kb(void) {
+    wdgReset(&WDGD1);
+
     if (m_host_driver == NULL) {
         m_host_driver = host_get_driver();
     }

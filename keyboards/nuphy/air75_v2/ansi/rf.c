@@ -571,8 +571,10 @@ void uart_send_report(uint8_t report_type, uint8_t *report_buf, uint8_t report_s
 void uart_receive_pro(void) {
     static bool rcv_start = false;
 
-    // Receiving serial data from RF module
-    while (uart_available()) {
+    // Receiving serial data from RF module.
+    // Limit iterations to prevent infinite loop if RF module floods garbage.
+    uint8_t max_bytes = UART_MAX_LEN;
+    while (uart_available() && max_bytes--) {
         rcv_start = true;
 
         if (Usart_Mgr.RXDLen >= UART_MAX_LEN) {

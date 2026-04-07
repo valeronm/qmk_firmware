@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "nuphy_common.h"
 #include "side_table.h"
+#include "hal_wdg.h"
 
 #define SIDE_LINE_LEDS 6
 #define SIDE_LINE_NUM 2
@@ -558,6 +559,7 @@ void device_reset_show(void) {
     gpio_write_pin_low(DRIVER_LED_CS_PIN);
 
     for (int blink_cnt = 0; blink_cnt < 3; blink_cnt++) {
+        wdgReset(&WDGD1);
         flush_all_leds(0x10, 0x10, 0x10);
         wait_ms(200);
         flush_all_leds(RGB_OFF);
@@ -598,6 +600,7 @@ void rgb_test_show(void) {
     };
 
     for (uint8_t i = 0; i < sizeof(test_colors) / sizeof(test_colors[0]); i++) {
+        wdgReset(&WDGD1);
         flush_all_leds(test_colors[i][0], test_colors[i][1], test_colors[i][2]);
         wait_ms(500);
     }
